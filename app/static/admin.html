@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lester the Virtual IT Assistant — Manage Documents</title>
+<script>
+  (function () {
+    try { if (localStorage.getItem('lester-theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}
+  })();
+</script>
+<style>
+  :root { --navy:#14304f; --navy-dark:#0d2238; --gold:#c9a227; --card:#fff; --text:#1d2733; --muted:#6b7a8c; --line:#e3e9f0; --page:#e7edf4; --field:#fff; --heading:#14304f; --link:#14304f; --hover:#eef3f8; }
+  [data-theme="dark"] { --text:#e6ecf3; --muted:#93a3b8; --line:#2a3849; --page:#0e1620; --card:#19222f; --field:#121a26; --heading:#e6ecf3; --link:#7cc0ff; --hover:#243246; }
+  .theme-toggle { background:transparent; border:0; font-size:16px; cursor:pointer; padding:5px 7px; border-radius:8px; line-height:1; }
+  .theme-toggle:hover { background:rgba(255,255,255,.14); }
+  * { box-sizing:border-box; margin:0; }
+  body {
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    background-color:var(--page); color:var(--text);
+    min-height:100vh; -webkit-font-smoothing:antialiased; transition:background-color .3s, color .3s;
+  }
+  header {
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-dark) 100%); color:#fff;
+    padding:12px 24px; display:flex; align-items:center; gap:14px;
+    box-shadow:0 2px 12px rgba(13,34,56,.18);
+  }
+  header .logo { width:56px; height:56px; border-radius:50%; object-fit:cover; background:#fff; flex-shrink:0; box-shadow:0 0 0 3px rgba(255,255,255,.25); }
+  .brand { flex:1; min-width:0; }
+  .brand h1 { font-size:18px; font-weight:600; letter-spacing:.2px; }
+  .brand .sub { font-size:12px; color:#9fb2c6; margin-top:2px; }
+  header a { color:#cfd9e4; text-decoration:none; font-size:13px; transition:color .15s; flex-shrink:0; }
+  header a:hover { color:#fff; }
+  .inner { max-width:860px; margin:0 auto; padding:28px 20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px; margin-bottom:22px; box-shadow:0 2px 10px rgba(20,48,79,.07); }
+  h2 { font-size:16px; color:var(--heading); margin-bottom:16px; }
+  #drop { border:2px dashed #b8c5d3; border-radius:14px; padding:36px; text-align:center; color:var(--muted); cursor:pointer; transition:.15s; }
+  #drop:hover { border-color:var(--link); background:var(--hover); }
+  #drop.over { border-color:var(--link); background:var(--hover); }
+  #drop strong { color:var(--heading); }
+  input[type=file] { display:none; }
+  label.field { display:block; font-size:13px; color:var(--muted); margin:12px 0 4px; }
+  input[type=text], textarea { width:100%; border:1px solid var(--line); background:var(--field); color:var(--text); border-radius:11px; padding:11px 13px; font:inherit; font-size:14px; outline:none; transition:border-color .15s; }
+  input[type=text]:focus, textarea:focus { border-color:var(--link); }
+  textarea { min-height:120px; resize:vertical; }
+  button { background:var(--navy); color:#fff; border:0; border-radius:11px; padding:11px 22px; font-size:14px; font-weight:600; cursor:pointer; margin-top:14px; transition:background .15s; }
+  button:hover:not(:disabled) { background:var(--navy-dark); }
+  button:disabled { opacity:.5; }
+  button.danger { background:transparent; color:#b3261e; padding:5px 10px; margin:0; font-weight:500; border-radius:7px; }
+  button.danger:hover:not(:disabled) { background:#fdecea; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); }
+  tr:last-child td { border-bottom:0; }
+  th { color:var(--muted); font-weight:600; font-size:12.5px; text-transform:uppercase; letter-spacing:.04em; }
+  #log { font-size:13px; margin-top:12px; }
+  #log .ok { color:#1b7e3c; } #log .err { color:#b3261e; }
+  .link-btn { background:transparent; color:var(--link); padding:5px 10px; margin:0; font-weight:600; border-radius:7px; font-size:13px; }
+  .link-btn:hover:not(:disabled) { background:var(--hover); }
+  /* Editor dialog */
+  .modal-bg { position:fixed; inset:0; background:rgba(13,34,56,.45); display:none; align-items:center; justify-content:center; padding:20px; z-index:50; }
+  .modal-bg.open { display:flex; }
+  .modal { background:var(--card); border-radius:16px; width:100%; max-width:680px; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(13,34,56,.3); overflow:hidden; }
+  .mhead { padding:18px 22px 4px; }
+  .mhead h2 { margin:0; }
+  .modal .mbody { padding:6px 22px 18px; overflow-y:auto; }
+  .modal .mbody textarea { min-height:340px; font-family:ui-monospace,Consolas,"Courier New",monospace; font-size:13px; line-height:1.55; }
+  .foot { padding:14px 22px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:10px; }
+  .foot button { margin-top:0; }
+  .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--line); }
+  .btn-ghost:hover:not(:disabled) { background:var(--hover); color:var(--text); }
+</style>
+</head>
+<body>
+<header>
+  <img class="logo" src="/static/logo.png?v=2" alt="Lester the Virtual IT Assistant">
+  <div class="brand">
+    <h1>Manage Knowledge Base</h1>
+    <div class="sub">Lester the Virtual IT Assistant · Admin</div>
+  </div>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+  <a href="/">&larr; Back to chat</a>
+</header>
+
+<div class="inner">
+  <div class="card">
+    <h2>System status banner</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Shows at the top of the chat for everyone. Use it to announce an outage or issue. Set to <strong>Down / issue</strong> to turn the status dot red.</p>
+    <label class="field">Status</label>
+    <select id="statusState" style="width:100%;border:1px solid var(--line);background:var(--field);color:var(--text);border-radius:11px;padding:11px 13px;font:inherit;font-size:14px;outline:none;">
+      <option value="ok">🟢 Operational — everything is up</option>
+      <option value="down">🔴 Down / issue — something is wrong</option>
+    </select>
+    <label class="field">Message (optional — shown in the banner)</label>
+    <textarea id="statusMessage" style="min-height:90px;" placeholder="e.g. The VPN is currently down. IT is working on it — no need to submit a ticket."></textarea>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button id="statusSave">Save banner</button>
+      <button id="statusClear" class="btn-ghost" style="margin-top:14px;">Clear (set operational)</button>
+      <span id="statusMsg" style="font-size:13px;"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <h2 style="margin-bottom:0;">Question metrics</h2>
+      <a href="/api/metrics/export" class="link-btn" style="text-decoration:none;">⬇ Export all to CSV</a>
+    </div>
+    <div id="metricStats" style="display:flex;gap:22px;flex-wrap:wrap;margin:16px 0;color:var(--muted);font-size:13px;">Loading…</div>
+    <table>
+      <thead><tr><th>When</th><th>User</th><th>Question</th><th>Answered</th></tr></thead>
+      <tbody id="qRows"><tr><td colspan="4" style="color:var(--muted)">Loading…</td></tr></tbody>
+    </table>
+    <div style="font-size:12px;color:var(--muted);margin-top:10px;">Showing the 50 most recent questions. Use Export for the full history. Hover a question to see Lester's answer.</div>
+  </div>
+
+  <div class="card">
+    <h2>Upload documents</h2>
+    <div id="drop">
+      <strong>Click to choose files</strong> or drag &amp; drop here<br>
+      <small>PDF, Word (.docx), Excel (.xlsx), text, Markdown, CSV</small>
+    </div>
+    <input type="file" id="fileInput" multiple accept=".pdf,.docx,.xlsx,.xlsm,.txt,.md,.csv">
+    <div id="log"></div>
+  </div>
+
+  <div class="card">
+    <h2>Paste text / FAQ</h2>
+    <label class="field">Title</label>
+    <input type="text" id="textTitle" placeholder="e.g. PTO Request FAQ">
+    <label class="field">Content</label>
+    <textarea id="textContent" placeholder="Paste the knowledge content here..."></textarea>
+    <button id="addText">Add to knowledge base</button>
+  </div>
+
+  <div class="card">
+    <h2>Documents in the knowledge base</h2>
+    <table>
+      <thead><tr><th>Title</th><th>Type</th><th>Chunks</th><th>Added</th><th></th></tr></thead>
+      <tbody id="docRows"><tr><td colspan="5" style="color:var(--muted)">Loading…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>User feedback</h2>
+    <div id="fbSummary" style="margin-bottom:12px; color:var(--muted); font-size:13px;">Loading…</div>
+    <table>
+      <thead><tr><th>Rating</th><th>Question asked</th><th>When</th><th></th></tr></thead>
+      <tbody id="fbRows"></tbody>
+    </table>
+    <div style="font-size:12px; color:var(--muted); margin-top:10px;">👎 rows are highlighted — these are the gaps worth adding or improving. Hover a question to see the answer Lester gave.</div>
+  </div>
+</div>
+
+<div class="modal-bg" id="editorBg">
+  <div class="modal">
+    <div class="mhead"><h2 id="editorHeading">View / Edit document</h2></div>
+    <div class="mbody">
+      <label class="field">Title</label>
+      <input type="text" id="editTitle">
+      <label class="field">Content</label>
+      <textarea id="editContent" placeholder="Loading…"></textarea>
+      <div id="editMsg" style="font-size:13px;margin-top:8px;"></div>
+    </div>
+    <div class="foot">
+      <button class="btn-ghost" id="editCancel">Cancel</button>
+      <button id="editSave">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Dark / light theme toggle (shared with the chat page via localStorage)
+const themeToggle = document.getElementById('themeToggle');
+function refreshThemeIcon() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  themeToggle.textContent = dark ? '☀️' : '🌙';
+  themeToggle.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+}
+refreshThemeIcon();
+themeToggle.addEventListener('click', () => {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (dark) { document.documentElement.removeAttribute('data-theme'); }
+  else { document.documentElement.setAttribute('data-theme', 'dark'); }
+  try { localStorage.setItem('lester-theme', dark ? 'light' : 'dark'); } catch (e) {}
+  refreshThemeIcon();
+});
+
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+const log = document.getElementById('log');
+
+drop.addEventListener('click', () => fileInput.click());
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => {
+  e.preventDefault(); drop.classList.remove('over');
+  if (e.dataTransfer.files.length) upload(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files.length) upload(fileInput.files); });
+
+async function upload(files) {
+  log.innerHTML = 'Uploading…';
+  const fd = new FormData();
+  for (const f of files) fd.append('files', f);
+  try {
+    const res = await fetch('/api/documents', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    const results = await res.json();
+    log.innerHTML = results.map(r => r.ok
+      ? `<div class="ok">✓ ${esc(r.filename)} — indexed (${r.chunks} chunks)</div>`
+      : `<div class="err">✗ ${esc(r.filename)} — ${esc(r.error)}</div>`).join('');
+    loadDocs();
+  } catch (err) {
+    log.innerHTML = `<div class="err">Upload failed: ${esc(err.message)}</div>`;
+  }
+  fileInput.value = '';
+}
+
+document.getElementById('addText').addEventListener('click', async () => {
+  const title = document.getElementById('textTitle').value.trim();
+  const content = document.getElementById('textContent').value.trim();
+  if (!title || !content) { alert('Title and content are both required.'); return; }
+  const res = await fetch('/api/documents/text', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, content }),
+  });
+  if (res.ok) {
+    document.getElementById('textTitle').value = '';
+    document.getElementById('textContent').value = '';
+    loadDocs();
+  } else {
+    alert((await res.json()).detail || 'Failed to add text');
+  }
+});
+
+async function loadDocs() {
+  const res = await fetch('/api/documents');
+  const docs = await res.json();
+  const tbody = document.getElementById('docRows');
+  if (!docs.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">No documents yet — upload some above.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = docs.map(d => `<tr>
+    <td>${esc(d.title)}</td>
+    <td>${esc(d.source_type)}</td>
+    <td>${d.chunk_count}</td>
+    <td>${new Date(d.created_at).toLocaleDateString()}</td>
+    <td style="white-space:nowrap;text-align:right">
+      <button class="link-btn" onclick="openEditor(${d.id})">View / Edit</button>
+      <button class="danger" onclick="removeDoc(${d.id}, this)">Delete</button>
+    </td>
+  </tr>`).join('');
+}
+
+async function removeDoc(id, btn) {
+  if (!confirm('Remove this document from the knowledge base?')) return;
+  btn.disabled = true;
+  const res = await fetch('/api/documents/' + id, { method: 'DELETE' });
+  if (res.ok) loadDocs(); else btn.disabled = false;
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---- User feedback ----
+async function loadFeedback() {
+  const res = await fetch('/api/feedback');
+  if (!res.ok) return;
+  const data = await res.json();
+  const up = data.counts.up || 0, down = data.counts.down || 0;
+  document.getElementById('fbSummary').textContent =
+    `👍 ${up} helpful · 👎 ${down} not helpful` + (up + down ? '' : ' — no feedback yet');
+  const tb = document.getElementById('fbRows');
+  if (!data.items.length) {
+    tb.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">No feedback yet.</td></tr>';
+    return;
+  }
+  tb.innerHTML = data.items.map(f => `<tr${f.rating === 'down' ? ' style="background:rgba(179,38,30,.08)"' : ''}>
+    <td style="font-size:16px">${f.rating === 'up' ? '👍' : '👎'}</td>
+    <td title="${esc(f.answer || '')}">${esc(f.question)}</td>
+    <td style="white-space:nowrap">${new Date(f.created_at).toLocaleDateString()}</td>
+    <td style="text-align:right"><button class="danger" onclick="removeFeedback(${f.id}, this)">Dismiss</button></td>
+  </tr>`).join('');
+}
+
+async function removeFeedback(id, btn) {
+  btn.disabled = true;
+  const res = await fetch('/api/feedback/' + id, { method: 'DELETE' });
+  if (res.ok) loadFeedback(); else btn.disabled = false;
+}
+
+// ---- View / Edit document dialog ----
+let editingId = null;
+const editorBg = document.getElementById('editorBg');
+const editMsg = document.getElementById('editMsg');
+
+async function openEditor(id) {
+  editingId = id;
+  document.getElementById('editTitle').value = '';
+  document.getElementById('editContent').value = '';
+  editMsg.textContent = 'Loading…'; editMsg.style.color = 'var(--muted)';
+  editorBg.classList.add('open');
+  try {
+    const res = await fetch('/api/documents/' + id);
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    const doc = await res.json();
+    document.getElementById('editTitle').value = doc.title || '';
+    document.getElementById('editContent').value = doc.content || '';
+    editMsg.textContent = '';
+  } catch (err) {
+    editMsg.textContent = 'Could not load this document: ' + esc(err.message);
+    editMsg.style.color = '#b3261e';
+  }
+}
+
+function closeEditor() { editorBg.classList.remove('open'); editingId = null; }
+document.getElementById('editCancel').addEventListener('click', closeEditor);
+editorBg.addEventListener('click', e => { if (e.target === editorBg) closeEditor(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && editorBg.classList.contains('open')) closeEditor(); });
+
+document.getElementById('editSave').addEventListener('click', async () => {
+  const title = document.getElementById('editTitle').value.trim();
+  const content = document.getElementById('editContent').value.trim();
+  if (!title || !content) { editMsg.textContent = 'Title and content are required.'; editMsg.style.color = '#b3261e'; return; }
+  const btn = document.getElementById('editSave'); btn.disabled = true;
+  editMsg.textContent = 'Saving…'; editMsg.style.color = 'var(--muted)';
+  try {
+    const res = await fetch('/api/documents/' + editingId, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content }),
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    closeEditor(); loadDocs();
+  } catch (err) {
+    editMsg.textContent = 'Save failed: ' + esc(err.message); editMsg.style.color = '#b3261e';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ---- System status banner ----
+const statusState = document.getElementById('statusState');
+const statusMessage = document.getElementById('statusMessage');
+const statusMsg = document.getElementById('statusMsg');
+
+async function loadStatus() {
+  const res = await fetch('/api/status');
+  if (!res.ok) return;
+  const s = await res.json();
+  statusState.value = s.state === 'down' ? 'down' : 'ok';
+  statusMessage.value = s.message || '';
+  if (s.updated_by) {
+    statusMsg.textContent = 'Last set by ' + s.updated_by;
+    statusMsg.style.color = 'var(--muted)';
+  }
+}
+
+async function saveStatus(state, message) {
+  const btn = document.getElementById('statusSave');
+  btn.disabled = true;
+  statusMsg.textContent = 'Saving…'; statusMsg.style.color = 'var(--muted)';
+  try {
+    const res = await fetch('/api/status', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ state, message }),
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    statusMsg.textContent = '✓ Saved — the chat banner is updated.'; statusMsg.style.color = '#1b7e3c';
+  } catch (err) {
+    statusMsg.textContent = 'Save failed: ' + esc(err.message); statusMsg.style.color = '#b3261e';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('statusSave').addEventListener('click', () =>
+  saveStatus(statusState.value, statusMessage.value.trim()));
+document.getElementById('statusClear').addEventListener('click', () => {
+  statusState.value = 'ok'; statusMessage.value = '';
+  saveStatus('ok', '');
+});
+
+// ---- Question metrics ----
+async function loadMetrics() {
+  const res = await fetch('/api/metrics');
+  if (!res.ok) return;
+  const data = await res.json();
+  const s = data.stats || {};
+  const peak = (s.daily && s.daily.length) ? Math.max(...s.daily.map(d => d.c)) : 0;
+  const today = (s.daily && s.daily.length) ? s.daily[0].c : 0;
+  document.getElementById('metricStats').innerHTML =
+    `<span><strong style="color:var(--heading);font-size:18px;">${s.total || 0}</strong> total questions</span>` +
+    `<span><strong style="color:var(--heading);font-size:18px;">${s.users || 0}</strong> unique users</span>` +
+    `<span><strong style="color:var(--heading);font-size:18px;">${today}</strong> most recent day</span>` +
+    `<span><strong style="color:var(--heading);font-size:18px;">${s.unanswered || 0}</strong> with no answer</span>`;
+  const tb = document.getElementById('qRows');
+  if (!data.items.length) {
+    tb.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">No questions logged yet.</td></tr>';
+    return;
+  }
+  tb.innerHTML = data.items.map(q => `<tr>
+    <td style="white-space:nowrap">${new Date(q.created_at).toLocaleString()}</td>
+    <td style="white-space:nowrap">${esc(q.user || '—')}</td>
+    <td title="${esc(q.answer || '')}">${esc(q.question)}</td>
+    <td style="text-align:center">${q.answered ? '✓' : '<span style="color:#b3261e">✗</span>'}</td>
+  </tr>`).join('');
+}
+
+loadStatus();
+loadMetrics();
+loadDocs();
+loadFeedback();
+</script>
+</body>
+</html>

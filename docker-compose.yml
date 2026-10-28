@@ -1,0 +1,30 @@
+# Lester — app + Caddy (HTTPS). Ollama runs EXTERNALLY (set OLLAMA_URL in .env)
+# so it can live on the GPU host later without touching this stack.
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    dns:                      # internal AD DNS so workstation IPs reverse-resolve to PC names
+      - 172.16.10.79
+      - 172.16.10.80
+    volumes:
+      - ./data:/data          # knowledge.db (your only irreplaceable data)
+    expose:
+      - "8000"                # internal only; Caddy reaches it, the host does not
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data      # TLS certs / Caddy state
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

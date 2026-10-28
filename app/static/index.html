@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capital Vacations — Lester the Virtual IT Assistant</title>
+<script>
+  // Apply saved theme before paint to avoid a flash.
+  (function () {
+    try { if (localStorage.getItem('lester-theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    --navy: #14304f; --navy-dark: #0d2238; --gold: #c9a227;
+    --text: #1d2733; --muted: #6b7a8c; --line: #e3e9f0;
+    --page: #e7edf4;
+    --glow-navy: rgba(20,48,79,.22); --glow-gold: rgba(201,162,39,.22); --dot: rgba(20,48,79,.07);
+    --card: #ffffff; --card-border: #e3e9f0;
+    --user-bubble: #14304f; --user-text: #ffffff;
+    --heading: #14304f; --link: #14304f;
+    --code-bg: #eef2f6; --src-bg: #e8eef5; --src-text: #14304f;
+    --composer-bg: #ffffff; --scroll: #cdd6e2;
+  }
+  [data-theme="dark"] {
+    --text: #e6ecf3; --muted: #93a3b8; --line: #2a3849;
+    --page: #0e1620;
+    --glow-navy: rgba(70,120,180,.18); --glow-gold: rgba(201,162,39,.13); --dot: rgba(255,255,255,.045);
+    --card: #19222f; --card-border: #2a3849;
+    --user-bubble: #2f6fb3; --user-text: #ffffff;
+    --heading: #e6ecf3; --link: #7cc0ff;
+    --code-bg: #243246; --src-bg: #243246; --src-text: #bcd4ee;
+    --composer-bg: #19222f; --scroll: #384557;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background-color: var(--page);
+    background-image:
+      radial-gradient(900px 640px at 6% -12%, var(--glow-navy), transparent 58%),
+      radial-gradient(840px 640px at 106% 114%, var(--glow-gold), transparent 55%),
+      radial-gradient(var(--dot) 1.4px, transparent 1.5px);
+    background-size: auto, auto, 24px 24px;
+    background-attachment: fixed;
+    color: var(--text); display: flex; flex-direction: column;
+    -webkit-font-smoothing: antialiased; transition: background-color .3s, color .3s;
+  }
+
+  /* Header */
+  header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%);
+    color: #fff; padding: 12px 24px; display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 2px 12px rgba(13,34,56,.18); z-index: 5;
+  }
+  header .logo {
+    width: 84px; height: 84px; border-radius: 50%; object-fit: cover;
+    background: #fff; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(255,255,255,.25);
+  }
+  .brand { flex: 1; min-width: 0; }
+  .brand h1 { font-size: 18px; font-weight: 600; letter-spacing: .2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brand .sub { font-size: 12px; color: #9fb2c6; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #38d39f; box-shadow: 0 0 0 3px rgba(56,211,159,.25); }
+  .dot.down { background: #e5484d; box-shadow: 0 0 0 3px rgba(229,72,77,.28); }
+  .status-banner { display: flex; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 11px 20px; font-size: 13.5px; font-weight: 600; white-space: pre-wrap; border-bottom: 1px solid var(--card-border); background: #1e9e57; color: #fff; }
+  .status-banner .sb-dot { width: 10px; height: 10px; border-radius: 50%; background: #fff; flex: none; box-shadow: 0 0 0 3px rgba(255,255,255,.3); }
+  .status-banner.down { background: #d92d2d; color: #fff; border-bottom-color: #b3231f; }
+  .status-banner.down .sb-dot { background: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.3); }
+  [data-theme="dark"] .status-banner { background: #122a1f; color: #5fd6a0; border-bottom-color: #1f4634; }
+  [data-theme="dark"] .status-banner.down { background: #d92d2d; color: #fff; border-bottom-color: #b3231f; }
+  .nav { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  .nav .who { font-size: 13px; color: #cfd9e4; }
+  header a { color: #cfd9e4; text-decoration: none; font-size: 13px; transition: color .15s; }
+  header a:hover { color: #fff; }
+  .theme-toggle { background: transparent; border: 0; font-size: 16px; cursor: pointer; padding: 5px 7px; border-radius: 8px; line-height: 1; }
+  .theme-toggle:hover { background: rgba(255,255,255,.14); }
+
+  /* Chat area */
+  #chat { flex: 1; overflow-y: auto; padding: 26px 0; }
+  #chat::-webkit-scrollbar { width: 10px; }
+  #chat::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 6px; border: 3px solid transparent; background-clip: content-box; }
+  .inner { max-width: 840px; margin: 0 auto; padding: 0 20px; }
+
+  .msg { display: flex; gap: 10px; margin-bottom: 18px; align-items: flex-start; animation: fade .25s ease; }
+  .msg.user { justify-content: flex-end; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 1px 3px rgba(20,48,79,.18); }
+
+  .bubble { max-width: 76%; padding: 13px 17px; border-radius: 16px; line-height: 1.55; font-size: 15px; word-wrap: break-word; overflow-wrap: anywhere; }
+  .user .bubble { background: var(--user-bubble); color: var(--user-text); border-bottom-right-radius: 5px; white-space: pre-wrap; box-shadow: 0 2px 6px rgba(20,48,79,.18); }
+  .bot .bubble { background: var(--card); color: var(--text); border: 1px solid var(--card-border); border-bottom-left-radius: 5px; box-shadow: 0 2px 8px rgba(20,48,79,.06); }
+
+  /* Markdown inside bot answers */
+  .bot .bubble p { margin: 0 0 10px; }
+  .bot .bubble p:last-child { margin-bottom: 0; }
+  .bot .bubble ul, .bot .bubble ol { margin: 6px 0; padding-left: 22px; }
+  .bot .bubble li { margin: 3px 0; }
+  .bot .bubble a { color: var(--link); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+  .bot .bubble a:hover { color: var(--gold); }
+  .bot .bubble code { background: var(--code-bg); padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+  .bot .bubble strong { font-weight: 700; }
+  .bot .bubble h1, .bot .bubble h2, .bot .bubble h3 { font-size: 15px; margin: 10px 0 4px; }
+
+  /* Typing indicator */
+  .typing { display: inline-flex; gap: 5px; padding: 2px 0; }
+  .typing span { width: 8px; height: 8px; border-radius: 50%; background: #9aacc0; animation: blink 1.3s infinite both; }
+  .typing span:nth-child(2) { animation-delay: .2s; }
+  .typing span:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+
+  /* Notes: status / sources / error */
+  .note { margin: -10px 0 16px 44px; }
+  .status { font-size: 12.5px; color: var(--muted); font-style: italic; }
+  .sources { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sources .src { background: var(--src-bg); color: var(--src-text); font-size: 12px; padding: 4px 11px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; }
+  .sources .src::before { content: "📄"; font-size: 11px; }
+  .error { color: #b3261e; font-size: 14px; background: #fdecea; border: 1px solid #f5c6c0; padding: 8px 12px; border-radius: 10px; }
+  .feedback { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+  .feedback button { background: transparent; border: 1px solid var(--card-border); border-radius: 8px; padding: 3px 10px; cursor: pointer; font-size: 13px; }
+  .feedback button:hover { border-color: var(--navy); }
+  [data-theme="dark"] .feedback button:hover { border-color: var(--link); }
+  .feedback button.ticket-btn { background: var(--navy); color: #fff; border-color: var(--navy); font-weight: 700; font-size: 13.5px; padding: 7px 16px; box-shadow: 0 2px 8px rgba(20,48,79,.22); }
+  .feedback button.ticket-btn:hover { background: var(--navy-dark); border-color: var(--gold); box-shadow: 0 4px 14px rgba(20,48,79,.32); transform: translateY(-1px); }
+  .feedback .ticket-label { font-weight: 600; color: var(--text); }
+  .feedback .loc-input { border: 1px solid var(--card-border); background: var(--card); color: var(--text); border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 13px; min-width: 230px; outline: none; }
+  .feedback .loc-input:focus { border-color: var(--navy); }
+  .feedback .loc-input.field-strong { border: 2px solid var(--navy); background: #fff; box-shadow: 0 1px 5px rgba(20,48,79,.15); }
+  [data-theme="dark"] .feedback .loc-input.field-strong { border: 1px solid var(--card-border); background: var(--card); box-shadow: none; }
+  .feedback button.submit-btn { background: var(--navy); color: #fff; border-color: var(--navy); font-weight: 600; padding: 6px 16px; }
+  .feedback button.submit-btn:hover { background: var(--navy-dark); border-color: var(--navy-dark); }
+  .feedback button.submit-btn:disabled { cursor: default; opacity: .9; }
+  [data-theme="dark"] .feedback button.submit-btn { background: var(--link); color: #0d2238; border-color: var(--link); }
+  [data-theme="dark"] .feedback button.submit-btn:hover { background: #9fd1ff; border-color: #9fd1ff; }
+  [data-theme="dark"] .feedback button.submit-btn:disabled { background: var(--link); color: #0d2238; opacity: .85; }
+  .feedback textarea.note-extra { width: 100%; max-width: 360px; min-height: 44px; border: 1px solid var(--card-border); background: var(--card); color: var(--text); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 13px; resize: vertical; outline: none; }
+  .feedback textarea.note-extra:focus { border-color: var(--navy); }
+
+  /* Welcome screen */
+  .welcome { text-align: center; margin-top: 9vh; animation: fade .4s ease; }
+  .welcome img { width: 132px; height: 132px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 16px rgba(20,48,79,.2); }
+  .welcome h2 { color: var(--heading); font-size: 24px; margin: 16px 0 6px; }
+  .welcome p { color: var(--muted); font-size: 15px; max-width: 460px; margin: 0 auto; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 26px; }
+  .chip {
+    background: var(--card); border: 1px solid var(--card-border); color: var(--heading);
+    font-size: 14px; padding: 10px 16px; border-radius: 12px; cursor: pointer;
+    box-shadow: 0 1px 3px rgba(20,48,79,.06); transition: .15s; font-family: inherit;
+  }
+  .chip:hover { border-color: var(--navy); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(20,48,79,.12); }
+  [data-theme="dark"] .chip:hover { border-color: var(--link); }
+
+  /* Composer */
+  footer { background: transparent; padding: 8px 0 20px; }
+  .composer {
+    display: flex; align-items: flex-end; gap: 8px; background: var(--composer-bg);
+    border: 1px solid var(--card-border); border-radius: 18px; padding: 8px 8px 8px 16px;
+    box-shadow: 0 3px 16px rgba(20,48,79,.1); transition: border-color .15s, box-shadow .15s;
+  }
+  .composer:focus-within { border-color: var(--navy); box-shadow: 0 4px 20px rgba(20,48,79,.16); }
+  [data-theme="dark"] .composer:focus-within { border-color: var(--link); }
+  textarea {
+    flex: 1; resize: none; border: 0; outline: none; background: transparent;
+    font: inherit; font-size: 15px; line-height: 1.5; max-height: 150px; padding: 7px 0; color: var(--text);
+  }
+  textarea::placeholder { color: var(--muted); }
+  .send {
+    width: 40px; height: 40px; flex-shrink: 0; border: 0; border-radius: 50%;
+    background: var(--navy); color: #fff; cursor: pointer; display: grid; place-items: center;
+    transition: background .15s, transform .1s;
+  }
+  [data-theme="dark"] .send { background: #2f6fb3; }
+  .send:hover:not(:disabled) { background: var(--navy-dark); }
+  [data-theme="dark"] .send:hover:not(:disabled) { background: #3b82c9; }
+  .send:active:not(:disabled) { transform: scale(.92); }
+  .send:disabled { opacity: .4; cursor: default; }
+  .send svg { width: 19px; height: 19px; }
+  .hint { font-size: 11.5px; color: var(--muted); text-align: center; margin-top: 9px; }
+
+  @media (max-width: 640px) {
+    header { padding: 9px 12px; gap: 10px; }
+    header .logo { width: 52px; height: 52px; }
+    .brand h1 { font-size: 15px; white-space: normal; line-height: 1.2; }
+    .brand .sub { font-size: 11px; }
+    .nav { gap: 12px; }
+    .nav .who { display: none; }
+    header a { font-size: 12px; }
+    .theme-toggle { padding: 4px 5px; }
+    .bubble { max-width: 84%; }
+    .welcome { margin-top: 4vh; }
+    .welcome img { width: 112px; height: 112px; }
+    .welcome h2 { font-size: 21px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <img class="logo" src="/static/logo.png?v=2" alt="Lester the Virtual IT Assistant">
+  <div class="brand">
+    <h1>Lester the Virtual IT Assistant</h1>
+    <div class="sub"><span class="dot" id="statusDot"></span> Capital Vacations IT · <span id="statusText">online</span></div>
+  </div>
+  <div class="nav">
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    <span class="who" id="userName"></span>
+    <a href="/admin" id="adminLink" hidden>Manage documents</a>
+    <a href="/logout">Sign out</a>
+  </div>
+</header>
+
+<div id="statusBanner" class="status-banner" hidden>
+  <span class="sb-dot"></span><span id="statusBannerText"></span>
+</div>
+
+<div id="chat"><div class="inner" id="messages">
+  <div class="welcome" id="welcome">
+    <img src="/static/logo.png?v=2" alt="Lester">
+    <h2>Hi, I'm Lester 👋</h2>
+    <p>Your virtual IT assistant. Ask me about passwords, WiFi, the VPN, printers, or anything in our IT knowledge base.</p>
+    <div class="chips" id="chips">
+      <button class="chip">How do I reset my password?</button>
+      <button class="chip">How do I connect to the WiFi?</button>
+      <button class="chip">How do I set up the VPN?</button>
+      <button class="chip">My computer is running slow</button>
+      <button class="chip">How do I submit a ticket?</button>
+    </div>
+  </div>
+</div></div>
+
+<footer><div class="inner">
+  <form id="form">
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="Ask Lester a question…" autofocus></textarea>
+      <button class="send" id="send" type="submit" aria-label="Send">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+      </button>
+    </div>
+  </form>
+  <div class="hint">Lester is AI and answers from company documents — double-check anything critical.</div>
+</div></footer>
+
+<script src="/static/marked.min.js"></script>
+<script src="/static/purify.min.js"></script>
+<script>
+// Dark / light theme toggle (persisted in localStorage)
+const themeToggle = document.getElementById('themeToggle');
+function refreshThemeIcon() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  themeToggle.textContent = dark ? '☀️' : '🌙';
+  themeToggle.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+}
+refreshThemeIcon();
+themeToggle.addEventListener('click', () => {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (dark) { document.documentElement.removeAttribute('data-theme'); }
+  else { document.documentElement.setAttribute('data-theme', 'dark'); }
+  try { localStorage.setItem('lester-theme', dark ? 'light' : 'dark'); } catch (e) {}
+  refreshThemeIcon();
+});
+
+// Render the bot's Markdown (links, bold, lists) to safe HTML.
+DOMPurify.addHook('afterSanitizeAttributes', node => {
+  if (node.tagName === 'A') {
+    node.setAttribute('target', '_blank');
+    node.setAttribute('rel', 'noopener noreferrer');
+  }
+});
+function renderMarkdown(text) {
+  return DOMPurify.sanitize(marked.parse(text, { breaks: true, gfm: true }));
+}
+
+const messagesEl = document.getElementById('messages');
+const chatEl = document.getElementById('chat');
+const form = document.getElementById('form');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+let history = [];
+
+fetch('/api/me').then(r => r.ok ? r.json() : null).then(me => {
+  if (!me) return;
+  document.getElementById('userName').textContent = me.name || me.email || '';
+  if (me.is_admin) document.getElementById('adminLink').hidden = false;
+  window.ticketingEnabled = !!me.ticketing;
+});
+
+// System status banner (set by admins) + header online/offline dot.
+function applyStatus(s) {
+  const down = s && s.state === 'down';
+  const dot = document.getElementById('statusDot');
+  dot.classList.toggle('down', down);
+  document.getElementById('statusText').textContent = down ? 'service issue' : 'online';
+  const banner = document.getElementById('statusBanner');
+  const msg = ((s && s.message) || '').trim();
+  if (msg || down) {
+    document.getElementById('statusBannerText').textContent = msg || "We're aware of a system issue and working on it.";
+    banner.classList.toggle('down', down);
+    banner.hidden = false;
+  } else {
+    banner.hidden = true;
+  }
+}
+function loadStatus() {
+  fetch('/api/status').then(r => r.ok ? r.json() : null).then(s => { if (s) applyStatus(s); }).catch(() => {});
+}
+loadStatus();
+setInterval(loadStatus, 60000);
+
+fetch('/api/locations').then(r => r.ok ? r.json() : []).then(locs => {
+  window.lesterLocations = locs;
+  const dl = document.createElement('datalist');
+  dl.id = 'loclist';
+  for (const l of locs) { const o = document.createElement('option'); o.value = l.label; dl.appendChild(o); }
+  document.body.appendChild(dl);
+}).catch(() => {});
+
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 150) + 'px';
+});
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+});
+
+document.getElementById('chips')?.addEventListener('click', e => {
+  if (e.target.classList.contains('chip')) ask(e.target.textContent);
+});
+
+function scroll() { chatEl.scrollTop = chatEl.scrollHeight; }
+
+function addUserMessage(text) {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg user';
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  b.textContent = text;
+  wrap.appendChild(b);
+  messagesEl.appendChild(wrap);
+  scroll();
+}
+
+function addBotMessage() {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg bot';
+  const av = document.createElement('img');
+  av.className = 'avatar'; av.src = '/static/logo.png?v=2'; av.alt = 'Lester';
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  b.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+  wrap.appendChild(av); wrap.appendChild(b);
+  messagesEl.appendChild(wrap);
+  scroll();
+  return b;
+}
+
+function addNote(cls, html) {
+  const d = document.createElement('div');
+  d.className = 'note ' + cls;
+  d.innerHTML = html;
+  messagesEl.appendChild(d);
+  scroll();
+  return d;
+}
+
+function addFeedback(question, answer, sources) {
+  const bar = document.createElement('div');
+  bar.className = 'note feedback';
+  const label = document.createElement('span');
+  label.textContent = 'Was this helpful?';
+  const up = document.createElement('button'); up.textContent = '👍'; up.title = 'Helpful';
+  const down = document.createElement('button'); down.textContent = '👎'; down.title = 'Not helpful';
+  bar.append(label, up, down);
+  function send(rating) {
+    fetch('/api/feedback', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, answer, rating, sources }),
+    }).catch(() => {});
+    bar.textContent = 'Thanks for your feedback ✓';
+  }
+  up.addEventListener('click', () => send('up'));
+  down.addEventListener('click', () => send('down'));
+  messagesEl.appendChild(bar);
+  scroll();
+}
+
+function addTicketAction(question, answer) {
+  if (!window.ticketingEnabled) return;
+  const bar = document.createElement('div');
+  bar.className = 'note feedback';
+  bar.style.flexWrap = 'wrap';
+  const label = document.createElement('span');
+  label.className = 'ticket-label';
+  label.textContent = 'Still need help? Send this to IT →';
+  const startBtn = document.createElement('button');
+  startBtn.className = 'ticket-btn';
+  startBtn.textContent = '📧 Create a Ticket';
+  startBtn.title = 'Send this to IT as a support ticket';
+  bar.append(label, startBtn);
+
+  startBtn.addEventListener('click', () => {
+    bar.innerHTML = '';
+    bar.style.flexDirection = 'column';
+    bar.style.alignItems = 'flex-start';
+    bar.style.gap = '7px';
+
+    const mkRow = (labelText, el) => {
+      const row = document.createElement('div');
+      row.style.display = 'flex'; row.style.alignItems = 'center';
+      row.style.gap = '8px'; row.style.flexWrap = 'wrap';
+      const s = document.createElement('span'); s.textContent = labelText;
+      row.append(s, el);
+      return row;
+    };
+
+    const urgency = document.createElement('select');
+    urgency.className = 'loc-input field-strong';
+    [['none', '1 - No'], ['wait', '2 - It can wait a bit'], ['hurt', '3 - People could get hurt'],
+     ['lives', '4 - Lives are on the line'], ['revenue', '5 - REVENUE IMPACTED']]
+      .forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; urgency.append(o); });
+    urgency.addEventListener('change', () => {
+      const hot = ['hurt', 'lives', 'revenue'].includes(urgency.value);
+      urgency.style.color = hot ? '#b3261e' : '';
+      urgency.style.fontWeight = hot ? '700' : '';
+      urgency.style.borderColor = hot ? '#b3261e' : '';
+    });
+
+    const loc = document.createElement('input');
+    loc.className = 'loc-input field-strong';
+    loc.setAttribute('list', 'loclist');
+    loc.placeholder = 'Start typing your location…';
+
+    const remote = document.createElement('select');
+    remote.className = 'loc-input';
+    [['No', 'No — in the office'], ['Yes', 'Yes — working remotely']]
+      .forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; remote.append(o); });
+
+    const contact = document.createElement('select');
+    contact.className = 'loc-input';
+    [['email', 'Email'], ['call', 'Call'], ['teams', 'Microsoft Teams']]
+      .forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; contact.append(o); });
+
+    const phone = document.createElement('input');
+    phone.className = 'loc-input';
+    phone.type = 'tel';
+    phone.placeholder = 'e.g. 843-555-1234 (optional)';
+    phone.style.minWidth = '180px';
+
+    const computer = document.createElement('input');
+    computer.className = 'loc-input';
+    computer.placeholder = 'e.g. CV-LAPTOP-042 (optional)';
+    computer.style.minWidth = '180px';
+
+    const details = document.createElement('textarea');
+    details.className = 'note-extra';
+    details.placeholder = 'Anything else IT should know? (optional)';
+
+    const submit = document.createElement('button');
+    submit.className = 'submit-btn';
+    submit.textContent = 'Submit ticket';
+    const msg = document.createElement('span');
+    const submitRow = document.createElement('div');
+    submitRow.style.display = 'flex'; submitRow.style.alignItems = 'center';
+    submitRow.style.gap = '8px'; submitRow.style.flexWrap = 'wrap';
+    submitRow.append(submit, msg);
+
+    bar.append(
+      mkRow('Is this super duper important?', urgency),
+      mkRow('Your resort/location:', loc),
+      mkRow('Are you working remotely?', remote),
+      mkRow('Best way to reach you?', contact),
+      mkRow('Your phone number:', phone),
+      mkRow('Your computer name:', computer),
+      mkRow('Anything else to add?', details),
+      submitRow,
+    );
+    loc.focus();
+
+    async function go() {
+      const typed = loc.value.trim();
+      const match = (window.lesterLocations || []).find(l => l.label.toLowerCase() === typed.toLowerCase());
+      if (!match) { msg.textContent = ' Please pick a location from the list.'; msg.style.color = '#b3261e'; loc.focus(); return; }
+      submit.disabled = true; urgency.disabled = true; loc.disabled = true; remote.disabled = true; contact.disabled = true; phone.disabled = true; computer.disabled = true; details.disabled = true;
+      submit.textContent = 'Creating…'; msg.textContent = '';
+      try {
+        const res = await fetch('/api/ticket', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, answer, location: match.value, urgency: urgency.value, remote: remote.value, contact: contact.value, phone: phone.value.trim(), computer: computer.value.trim(), details: details.value.trim() }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || res.statusText);
+        bar.style.flexDirection = ''; bar.style.alignItems = '';
+        if (data.pending) {
+          bar.textContent = '✅ Ticket submitted for ' + match.label
+            + '. IT\'s system was slow to confirm, so check your email for the confirmation — please don\'t resubmit (it was created).';
+        } else {
+          bar.textContent = '✅ Ticket #' + data.ticket + ' created for ' + match.label
+            + '. Need to add more? Just reply to the confirmation email — your message attaches to this ticket.';
+        }
+      } catch (e) {
+        submit.disabled = false; urgency.disabled = false; loc.disabled = false; remote.disabled = false; contact.disabled = false; phone.disabled = false; computer.disabled = false; details.disabled = false;
+        submit.textContent = 'Submit ticket';
+        msg.textContent = " Couldn't create ticket: " + e.message; msg.style.color = '#b3261e';
+      }
+    }
+    submit.addEventListener('click', go);
+    loc.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+    phone.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+  });
+
+  messagesEl.appendChild(bar);
+  scroll();
+}
+
+async function ask(q) {
+  q = (q || '').trim();
+  if (!q || sendBtn.disabled) return;
+  document.getElementById('welcome')?.remove();
+  input.value = ''; input.style.height = 'auto';
+  sendBtn.disabled = true;
+
+  history.push({ role: 'user', content: q });
+  addUserMessage(q);
+  const botBubble = addBotMessage();
+  let botText = '';
+  let statusEl = null;
+  let collectedSources = [];
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: history }),
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const ev = JSON.parse(line);
+        if (ev.type === 'text') {
+          botText += ev.text;
+          botBubble.innerHTML = renderMarkdown(botText);
+          statusEl?.remove(); statusEl = null;
+          scroll();
+        } else if (ev.type === 'status') {
+          statusEl?.remove();
+          statusEl = addNote('status', escapeHtml(ev.text) + '…');
+        } else if (ev.type === 'sources' && ev.sources.length) {
+          collectedSources = ev.sources;
+          addNote('sources', ev.sources.map(s => '<span class="src">' + escapeHtml(s) + '</span>').join(''));
+        } else if (ev.type === 'error') {
+          addNote('error', escapeHtml(ev.text));
+        }
+      }
+    }
+    statusEl?.remove();
+    if (botText) {
+      history.push({ role: 'assistant', content: botText });
+      addFeedback(q, botText, collectedSources);
+      addTicketAction(q, botText);
+    } else {
+      botBubble.parentElement.remove();
+    }
+  } catch (err) {
+    botBubble.parentElement.remove();
+    addNote('error', 'Something went wrong: ' + escapeHtml(err.message));
+    history.pop();
+  } finally {
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+form.addEventListener('submit', e => { e.preventDefault(); ask(input.value); });
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>
